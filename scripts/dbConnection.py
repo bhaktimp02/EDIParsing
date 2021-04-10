@@ -21,6 +21,6 @@ def dbInsert(df):
     print(conn)
     print(df.head())
     print(df.columns)
-    df.to_sql('stg_doc_track2', conn, if_exists='append', chunksize = 1000,index=False, index_label='id')
+    df.to_sql('stg_doc_track', conn, if_exists='append', chunksize = 1000,index=False, index_label='id')
     print('Data inserted to Oracle table')
 
