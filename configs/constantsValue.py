@@ -3,8 +3,7 @@
 import os
 
 def colsumLists():
-    return ({"ID",
-             "PROCESS_ID",
+    return ({"PROCESS_ID",
              "PARTNER_NAME",
              "DIRECTION",
              "INTERCHANGE_SENDER_ID",
@@ -19,7 +18,7 @@ def colsumLists():
              "TRANSACTION_STATUS",
              "FA_STATUS",
              "RECV_FILENAME",
-             "ECV_FILE_ARCHIVE_PATH",
+             "RECV_FILE_ARCHIVE_PATH",
              "SEND_FILENAME",
              "SEND_FILE_ARCHIVE_PATH",
              "APPLICATIONDOC_NUM",

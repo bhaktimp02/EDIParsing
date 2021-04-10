@@ -1,6 +1,6 @@
 from scripts.parsingv1 import dataParsing
 import pandas as pd
-
+from scripts.dbConnection import dbInsert
 import os
 
 
@@ -10,6 +10,7 @@ def main(inputpath):
     for file in os.listdir(r"{}".format(inputpath)):
         print(file)
         resultdf = dataParsing(file, fpath='{}'.format(inputpath))
+        dbInsert(resultdf)
 
 
 if __name__ == '__main__':

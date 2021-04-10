@@ -127,9 +127,11 @@ def dataParsing(filename, fpath):
 
 
     df = pd.DataFrame(allcapture, columns=colList)
-    df.to_csv('lib\output\{}.csv'.format(filename.replace('.','_')), index=False)
+    df['CREATE_DATE_TIME']=pd.datetime.now()
+    #del df['index']
+    #df.to_csv('lib\output\{}.csv'.format(filename.replace('.','_')), index=False)
     f.close()
-    return allcapture
+    return df
 
 
 
