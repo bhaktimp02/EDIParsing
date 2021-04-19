@@ -1,27 +1,21 @@
 import pandas as pd
 import copy
 from configs.constantsValue import colsumLists
-import pdb as bp
-#from ediParsingType import parsingUNA
 import pprint
-
-
+resetDict={}
+allcapture = []
+colList = colsumLists()
 def dataParsing(filename, fpath):
     data = []
     print('{}\\{}'.format(fpath, filename))
     f = open('{}\\{}'.format(fpath, filename), 'r')
     texts = f.readlines()
-    colList = colsumLists()
     listOflines = []
     for line in texts:
-        # print(line)
-        # print(len(line))
         if line.startswith("ISA"):
             print(line)
             elementDelimiter = line[3]
             segmentTerminator = line[105]
-            # print('element segment: {}  && line segment : {}'.format(elementDelimiter,segmentTerminator))
-            # print(line.split(elementDelimiter))
             dataSplit = line.split(elementDelimiter)
             print(dataSplit)
             print(segmentTerminator)
@@ -41,12 +35,21 @@ def dataParsing(filename, fpath):
                     "INTERCHANGE_CONTROL_NUMBER": dataSplit[10].strip(),
                     "RECV_FILENAME": filename,
                     "DIRECTION": 'INBOUND'}
-        if line.startswith("UNA"):
-            print('--------entering in UNA----')
-            #dataR = parsingUNA(line, data)
-            elementDelimiter = line[4]
-            segmentTerminator = line[8]
-            subementDelimeter = line[3]
+            subementDelimeter=None
+        if line.startswith("UNA") or line.startswith("UNB"):
+            print(line)
+            if line.startswith("UNB"):
+                elementDelimiter = line[3]
+                segmentTerminator = line[72]
+                subementDelimeter = line[8]
+                #print(line[3],line[8],line[72])
+            else:
+                print('--------entering in UNA----')
+                #dataR = parsingUNA(line, data)
+                elementDelimiter = line[3]
+                segmentTerminator = line[8]
+                subementDelimeter = line[4]
+            print(elementDelimiter,subementDelimeter,segmentTerminator)
             dataSplit = (line).split(elementDelimiter)
             # dataSplit = line.split(elementDelimiter)
 
@@ -57,13 +60,14 @@ def dataParsing(filename, fpath):
 
         listOflines.extend(allLines[:-1])
 
-    dataFinal = pd.DataFrame(columns=colList)
-    print(dataFinal)
-    allcapture = []
-    data2 = {}
-    valuee = 0
-    # print(listOflines)
+    print(len(listOflines))
+    return iterateLines(f,listOflines,segmentTerminator,subementDelimeter,elementDelimiter,filename,data)
+
+def iterateLines(f,listOflines,segmentTerminator,subementDelimeter,elementDelimiter,filename,data):
+    allcapture=[]
+
     for value in range(0, len(listOflines)):
+
 
         # ----------------- Group Parsing ---------------------------------#
         if listOflines[value].startswith('GS'):
@@ -73,63 +77,129 @@ def dataParsing(filename, fpath):
             data["GROUP_SENDER_ID"] = gsData[2]
             data["GROUP_RECIEVER_ID"] = gsData[3]
             data["GROUP_CONTROL_NUMBER"] = gsData[6]
-        # -------------------- ST * 850 Parsing----------------------------#
+        # -------------------- ST * 810 Parsing----------------------------#
+        if listOflines[value].startswith('ST*810*'):
+            data["TRANSACTION_TYPE"]='810'
+            data["TRANSACTION_ID"]=810
+            #allcapture = allcapture
+            print(listOflines[value])
+            print('#---------------line 810------------------#')
+            ind=0
+            while True:
+                if listOflines[value+ind].startswith('BIG'):
+                    dataformat = listOflines[value+ind].split(elementDelimiter)
+                    data['PURCHASE_ORDER_NUMBER'] = dataformat[4]
+                    data['PO_DATE'] = dataformat[3]
+                    data["INVOICE_DATE"] = dataformat[1]
+                    data["INVOICE_NUMBER"] = dataformat[2]
+                if listOflines[value+ind].startswith('TDS'):
+                    print(listOflines[value+ind])
+                    dataformat = listOflines[value+ind].split(elementDelimiter)
+                    data["INVOICE_AMOUNT"] = dataformat[1]
+                    allcapture.append(copy.deepcopy(data))
+                    break
+                else:
+                    ind=ind+1
+        # ------------------------  ST * 850 --------------------------#
         if listOflines[value].startswith('ST*850*'):
-            allcapture = allcapture
             print('#---------------line 850------------------#')
             dataformat = listOflines[value + 1].split(elementDelimiter)
             data['PURCHASE_ORDER_NUMBER'] = dataformat[3]
             data['PO_DATE'] = dataformat[5]
-            data["INVOICE_DATE"] = dataformat[5]
-            data["INVOICE_NUMBER"] = dataformat[5]
-            data["INVOICE_AMOUNT"] = dataformat[5]
-            data2 = data
-            # print(data2)
-            allcapture.append(copy.deepcopy(data2))
-        # ------------------------  ST * 810 --------------------------#
-        if listOflines[value].startswith('ST*810*'):
-            print('#---------------line 810------------------#')
-            dataformat = listOflines[value + 1].split(elementDelimiter)
-            # print(dataformat)
-            data['PURCHASE_ORDER_NUMBER'] = dataformat[3]
-            data['PO_DATE'] = dataformat[5]
-        # ------------------------EDI fAct UNB Parsing --------------->#
-        if listOflines[value].startswith('UNB+'):
-            dataformat = listOflines[value].split(subementDelimeter)
-            # print(dataformat)
-            # print(data)
-            #
-            # print(dataformat[3].split(elementDelimiter)[1])
-            data = {'INTERCHANGE_SENDER_ID': dataformat[1].split(elementDelimiter)[1],
-                    'INTERCHANGE_RECEIVER_ID': dataformat[2].split(elementDelimiter)[1],
-                    'Interchange date': dataformat[3].split(elementDelimiter)[1],
-                    'interchange time': dataformat[4].split(elementDelimiter)[0],
-                    "INTERCHANGE_CONTROL_NUMBER": dataformat[4].split(elementDelimiter)[-1],
-                    "TRANSACTION_CONTROL_NUMBER": dataformat[4].split(elementDelimiter)[-1], 'TRANSACTION_STATUS': 1,
-                    "DIRECTION": 'INBOUND', 'Sender qualifiers': dataformat[1].split(elementDelimiter)[1],
-                    'receiver qualifiers': dataformat[2].split(elementDelimiter)[1]}
-            data['INTERCHANGE_RECEIVER_ID']: dataformat[2].split(elementDelimiter)[1]
-            data['Interchange date'] = dataformat[3].split(elementDelimiter)[1]
-            data['interchange time'] = dataformat[4].split(elementDelimiter)[0]
-            data["INTERCHANGE_CONTROL_NUMBER"] = dataformat[4].split(elementDelimiter)[-1]
-            data["RECV_FILENAME"] = filename
-            data['TRANSACTION_STATUS'] = 1
-            data['TRANSACTION_CONTROL_NUMBER'] = dataformat[4].split(elementDelimiter)[-1]
-            data["DIRECTION"] = 'INBOUND'
-
-            #pprint.pprint(data)
-            dataformat2 = listOflines[value + 1].split(subementDelimeter)
-            #print(dataformat2)
-            data["TRANSACTION_TYPE"] = dataformat2[0].split(elementDelimiter)[-1]
-            data["TRANSACTION_ID"] = dataformat2[0].split(elementDelimiter)[-1]
-            #print(data)
             allcapture.append(copy.deepcopy(data))
 
+        # ------------------------  ST * 856 --------------------------#
+
+        if listOflines[value].startswith('ST*856*'):
+            print(listOflines[value])
+            data["TRANSACTION_CONTROL_NUMBER"]=listOflines[value].split(elementDelimiter)[2]
+            data["TRANSACTION_TYPE"] = listOflines[value].split(elementDelimiter)[1]
+            data["TRANSACTION_ID"] = listOflines[value].split(elementDelimiter)[1]
+            data['TRANSACTION_STATUS'] = 1
+
+        elif listOflines[value].startswith('BSN'):
+            data["ASN_NUMBER"]=listOflines[value].split(elementDelimiter)[2]
+            data["ASN_DATE"]=listOflines[value].split(elementDelimiter)[3]
+            allcapture.append(copy.deepcopy(data))
+        elif listOflines[value].startswith('HL*') and listOflines[value].endswith('*O'):
+            ind=1
+            while True:
+                print('inside while')
+                if listOflines[value+ind].startswith('PRF'):
+                    print(listOflines[value+ind])
+                    data["PURCHASE_ORDER_NUMBER"] = listOflines[value+ind].split(elementDelimiter)[1]
+                    data["PO_DATE"] = listOflines[value+ind].split(elementDelimiter)[4]
+                    #print(data)
+                    allcapture.append(copy.deepcopy(data))
+                    break
+                else:
+                    ind=ind+1
+
+
+        # ------------------------ End ST * 856 --------------------------#
+
+
+        # ------------------------  ST * 997 --------------------------#
+        if listOflines[value].startswith('ST*997*'):
+            #print(listOflines[value])
+            data["TRANSACTION_CONTROL_NUMBER"] = listOflines[value].split(elementDelimiter)[2]
+            data["TRANSACTION_TYPE"]=listOflines[value].split(elementDelimiter)[1]
+            data["TRANSACTION_ID"]=listOflines[value].split(elementDelimiter)[1]
+            data['TRANSACTION_STATUS']=1
+            data["ASN_NUMBER"] = None
+            data["ASN_DATE"] = None
+
+            ind = 1
+            while True:
+                print('inside while')
+                if listOflines[value].startswith('AK2*'):
+                    data["FA_STATUS"] = listOflines[value].split(elementDelimiter)[2]
+                    # print(data)
+                    allcapture.append(data)
+                    break
+
+                elif listOflines[value].startswith('ST*997*'):
+                    allcapture.append(data)
+                    break
+                else:
+                    ind = ind + 1
+            # ------------------------  ST * 997 --------------------------#
+        # ------------------------EDI fAct UNB Parsing --------------->#
+        if listOflines[value].startswith('UNB+'):
+            dataformat = listOflines[value].split(elementDelimiter)
+
+            data = {'INTERCHANGE_SENDER_ID': dataformat[2].split(subementDelimeter)[0],
+                    'INTERCHANGE_RECEIVER_ID': dataformat[3].split(subementDelimeter)[0],
+                    'Interchange date': dataformat[4].split(subementDelimeter)[0],
+                    'interchange time': dataformat[4].split(subementDelimeter)[1],
+                    "INTERCHANGE_CONTROL_NUMBER": dataformat[5],
+                    "TRANSACTION_CONTROL_NUMBER": dataformat[4].split(subementDelimeter)[-1],
+                    'TRANSACTION_STATUS': 1,
+                    "DIRECTION": 'INBOUND', 'Sender qualifiers': dataformat[1].split(subementDelimeter)[1],
+                    'receiver qualifiers': dataformat[3].split(subementDelimeter)[1]}
+            print(dataformat)
+            data['INTERCHANGE_RECEIVER_ID']: dataformat[2].split(subementDelimeter)[1]
+            data['Interchange date'] = dataformat[3].split(subementDelimeter)[1]
+            data['interchange time'] = dataformat[4].split(subementDelimeter)[0]
+            data["INTERCHANGE_CONTROL_NUMBER"] = dataformat[4].split(subementDelimeter)[-1]
+            data["RECV_FILENAME"] = filename
+            data['TRANSACTION_STATUS'] = 1
+            data['TRANSACTION_CONTROL_NUMBER'] = dataformat[4].split(subementDelimeter)[-1]
+            data["DIRECTION"] = 'INBOUND'
+            dataformat2 = listOflines[value + 1].split(elementDelimiter)
+            print(dataformat2)
+            data["TRANSACTION_TYPE"] = dataformat2[2].split(subementDelimeter)[2]
+            data["TRANSACTION_ID"] = dataformat2[1]
+            allcapture.append(copy.deepcopy(data))
 
     df = pd.DataFrame(allcapture, columns=colList)
     df['CREATE_DATE_TIME']=pd.datetime.now()
-    #del df['index']
-    #df.to_csv('lib\output\{}.csv'.format(filename.replace('.','_')), index=False)
+    df['ASN_DATE']=pd.to_datetime(df['ASN_DATE'])
+    df['INVOICE_DATE']=pd.to_datetime(df['INVOICE_DATE'])
+    df['LAST_UPDATE_DATE_TIME']=pd.to_datetime(df['LAST_UPDATE_DATE_TIME'])
+    df['PO_DATE']=pd.to_datetime(df['PO_DATE'])
+
+
     f.close()
     return df
 
