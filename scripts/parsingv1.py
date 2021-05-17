@@ -490,7 +490,7 @@ def iterateLines(f,listOflines,segmentTerminator,subementDelimeter,elementDelimi
                     'receiver qualifiers': dataformat[3].split(elementDelimiter)[1]}
             #pprint.pprint(data)
             print(dataformat)
-            data['INTERCHANGE_RECEIVER_ID']: dataformat[2].split(elementDelimiter)[1]
+            data['INTERCHANGE_RECEIVER_ID']=dataformat[2].split(elementDelimiter)[1]
             # data['Interchange date'] = dataformat[3].split(subementDelimeter)[1]
             # data['interchange time'] = dataformat[4].split(subementDelimeter)[0]
             data["INTERCHANGE_CONTROL_NUMBER"] = dataformat[4].split(elementDelimiter)[-1]
