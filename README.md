@@ -22,3 +22,6 @@ $ pip install -r requirements.txt
 # Run the code
 
 $ python3 main.py
+
+
+Added all Edifact parsing
